@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isDragging || !selectedTextElement) return;
         
         e.preventDefault();
+        e.stopPropagation();
         
         const coords = getEventCoordinates(e);
         const overlayRect = textOverlay.getBoundingClientRect();
@@ -349,12 +350,42 @@ document.addEventListener('DOMContentLoaded', () => {
     textOverlay.addEventListener('touchmove', handleMove, { passive: false });
     textOverlay.addEventListener('touchend', handleEnd, { passive: false });
     
-    // プレビュー外でのタッチ操作を無効化
+    // プレビュー外でのタッチ操作を無効化（ドラッグ中のみ）
     document.addEventListener('touchmove', (e) => {
         if (isDragging) {
             e.preventDefault();
         }
     }, { passive: false });
+    
+    // コントロールパネルでのイベント伝播を防止
+    const controlPanel = document.querySelector('.control-panel');
+    controlPanel.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+    }, { passive: true });
+    
+    controlPanel.addEventListener('touchmove', (e) => {
+        e.stopPropagation();
+    }, { passive: true });
+    
+    controlPanel.addEventListener('touchend', (e) => {
+        e.stopPropagation();
+    }, { passive: true });
+    
+    // スライダーのタッチ操作を最適化
+    const rangeInputs = document.querySelectorAll('input[type="range"]');
+    rangeInputs.forEach(input => {
+        input.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+        
+        input.addEventListener('touchmove', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+        
+        input.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+    });
 
     // テキストリストの更新
     function updateTextItemsList() {
