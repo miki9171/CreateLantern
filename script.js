@@ -353,6 +353,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTextItemsList();
             }
         });
+        
+        // 改行時のスタイル保持
+        element.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                // 改行を挿入
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                const br = document.createElement('br');
+                range.deleteContents();
+                range.insertNode(br);
+                range.setStartAfter(br);
+                range.setEndAfter(br);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // テキストデータを更新
+                const textData = textElements.find(item => item.id === element.id);
+                if (textData) {
+                    textData.text = element.textContent;
+                    updateTextItemsList();
+                }
+            }
+        });
+        
+        // ペースト時のスタイル保持
+        element.addEventListener('paste', (e) => {
+            e.preventDefault();
+            
+            // プレーンテキストとして挿入
+            const text = e.clipboardData.getData('text/plain');
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(document.createTextNode(text));
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // テキストデータを更新
+            const textData = textElements.find(item => item.id === element.id);
+            if (textData) {
+                textData.text = element.textContent;
+                updateTextItemsList();
+            }
+        });
     }
 
     // マウスとタッチの移動を追跡
@@ -558,7 +605,16 @@ document.addEventListener('DOMContentLoaded', () => {
             tempCtx.textAlign = 'center';
             tempCtx.textBaseline = 'middle';
             
-            tempCtx.fillText(textData.text, centerX, centerY);
+            // 改行に対応したテキスト描画
+            const lines = textData.text.split('\n');
+            const lineHeight = fontSize * 1.2;
+            const totalHeight = lines.length * lineHeight;
+            const startY = centerY - (totalHeight - lineHeight) / 2;
+            
+            lines.forEach((line, index) => {
+                const y = startY + index * lineHeight;
+                tempCtx.fillText(line, centerX, y);
+            });
         });
         
         // 画像をダウンロード

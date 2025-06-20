@@ -130,6 +130,9 @@ h1 {
     -ms-user-select: text;
     user-select: text;
     transform-origin: center;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.2;
 }
 
 .text-element.editable:focus {
@@ -179,7 +182,8 @@ h1 {
 }
 
 .control-group input[type="text"],
-.control-group select {
+.control-group select,
+.control-group textarea {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
@@ -189,6 +193,13 @@ h1 {
     -moz-appearance: none;
     appearance: none;
     touch-action: manipulation;
+    font-family: inherit;
+}
+
+.control-group textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.4;
 }
 
 .control-group input[type="range"] {
