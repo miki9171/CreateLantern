@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeValue = document.getElementById('fontSizeValue');
     const fontColor = document.getElementById('fontColor');
     const fontFamily = document.getElementById('fontFamily');
+    const textAlign = document.getElementById('textAlign');
     const addTextBtn = document.getElementById('addTextBtn');
     const saveImageBtn = document.getElementById('saveImageBtn');
     const textItemsList = document.getElementById('textItemsList');
@@ -87,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const textSize = `${fontSize.value}px`;
         const textFont = fontFamily.value;
         const textColorValue = fontColor.value;
+        const textAlignValue = textAlign.value;
         
         // テキスト要素を作成
         const textElement = document.createElement('div');
@@ -99,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textElement.style.fontSize = textSize;
         textElement.style.fontFamily = textFont;
         textElement.style.color = textColorValue;
+        textElement.style.textAlign = textAlignValue;
         
         // キャンバスコンテナの中心座標を取得
         const canvasContainer = document.querySelector('.canvas-container');
@@ -123,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             size: textSize,
             font: textFont,
             color: textColorValue,
+            align: textAlignValue,
             x: centerX,
             y: centerY,
             hasInitialTransform: true
@@ -172,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontSizeValue.textContent = textData.size;
                 fontFamily.value = textData.font;
                 fontColor.value = textData.color;
+                textAlign.value = textData.align;
             }
         }
     }
@@ -602,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // テキストを描画
             tempCtx.font = `${fontSize}px ${textData.font}`;
             tempCtx.fillStyle = textData.color;
-            tempCtx.textAlign = 'center';
+            tempCtx.textAlign = textData.align;
             tempCtx.textBaseline = 'middle';
             
             // 改行に対応したテキスト描画
@@ -611,9 +616,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalHeight = lines.length * lineHeight;
             const startY = centerY - (totalHeight - lineHeight) / 2;
             
+            // テキスト配置に応じた座標計算
+            let textX;
+            switch (textData.align) {
+                case 'left':
+                    textX = centerX - 100; // 左揃えの場合、少し左にずらす
+                    break;
+                case 'right':
+                    textX = centerX + 100; // 右揃えの場合、少し右にずらす
+                    break;
+                case 'center':
+                default:
+                    textX = centerX; // 中央揃えの場合、そのまま
+                    break;
+            }
+            
             lines.forEach((line, index) => {
                 const y = startY + index * lineHeight;
-                tempCtx.fillText(line, centerX, y);
+                tempCtx.fillText(line, textX, y);
             });
         });
         
@@ -625,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // テキスト設定の変更を監視して選択中の要素に反映
-    [fontSize, fontFamily, fontColor].forEach(control => {
+    [fontSize, fontFamily, fontColor, textAlign].forEach(control => {
         control.addEventListener('input', () => {
             if (!selectedTextElement) return;
             
@@ -649,6 +669,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (control === fontColor) {
                 selectedTextElement.style.color = fontColor.value;
                 textData.color = fontColor.value;
+            }
+            
+            // テキスト配置の更新
+            if (control === textAlign) {
+                selectedTextElement.style.textAlign = textAlign.value;
+                textData.align = textAlign.value;
             }
             
             // リストを更新
