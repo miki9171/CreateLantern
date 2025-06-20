@@ -52,12 +52,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // エディタコンテナを表示
             editorContainer.style.display = 'flex';
             
-            // テキストオーバーレイのサイズを実際の画像表示サイズに調整
-            setTimeout(() => {
-                const canvasRect = imageCanvas.getBoundingClientRect();
-                textOverlay.style.width = `${canvasRect.width}px`;
-                textOverlay.style.height = `${canvasRect.height}px`;
-            }, 100);
+            // テキストオーバーレイのサイズを調整
+            if (!isTouchDevice) {
+                // PC用：実際の画像表示サイズに調整
+                setTimeout(() => {
+                    const canvasRect = imageCanvas.getBoundingClientRect();
+                    textOverlay.style.width = `${canvasRect.width}px`;
+                    textOverlay.style.height = `${canvasRect.height}px`;
+                }, 100);
+            } else {
+                // モバイル用：元画像サイズを使用（簡略化）
+                textOverlay.style.width = `${imageCanvas.width}px`;
+                textOverlay.style.height = `${imageCanvas.height}px`;
+            }
             
             // 保存ボタンを有効化
             saveImageBtn.disabled = false;
@@ -104,12 +111,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // キャンバスコンテナの中心座標を取得
         const canvasContainer = document.querySelector('.canvas-container');
         const containerRect = canvasContainer.getBoundingClientRect();
-        const imageCanvas = document.getElementById('imageCanvas');
-        const canvasRect = imageCanvas.getBoundingClientRect();
         
-        // 実際の画像表示領域の中心座標を計算
-        const centerX = canvasRect.width / 2;
-        const centerY = canvasRect.height / 2;
+        let centerX, centerY;
+        
+        if (!isTouchDevice) {
+            // PC用：実際の画像表示領域の中心座標を計算
+            const imageCanvas = document.getElementById('imageCanvas');
+            const canvasRect = imageCanvas.getBoundingClientRect();
+            centerX = canvasRect.width / 2;
+            centerY = canvasRect.height / 2;
+        } else {
+            // モバイル用：コンテナの中心座標を使用（簡略化）
+            centerX = containerRect.width / 2;
+            centerY = containerRect.height / 2;
+        }
         
         // 位置を中央に設定（transformを使用して中央揃え）
         textElement.style.left = `${centerX}px`;
@@ -498,89 +513,111 @@ document.addEventListener('DOMContentLoaded', () => {
         // プレビューのサイズを取得
         const canvasContainer = document.querySelector('.canvas-container');
         const containerRect = canvasContainer.getBoundingClientRect();
-        const imageCanvas = document.getElementById('imageCanvas');
-        const canvasRect = imageCanvas.getBoundingClientRect();
         
-        // 実際に表示されている画像のサイズを計算
-        const displayWidth = canvasRect.width;
-        const displayHeight = canvasRect.height;
-        
-        // アスペクト比を保持したキャンバスサイズを計算
-        let canvasWidth, canvasHeight;
-        
-        if (containerRect.width / containerRect.height > originalAspectRatio) {
-            // コンテナが横長の場合、高さに合わせる
-            canvasHeight = containerRect.height;
-            canvasWidth = containerRect.height * originalAspectRatio;
-        } else {
-            // コンテナが縦長の場合、幅に合わせる
-            canvasWidth = containerRect.width;
-            canvasHeight = containerRect.width / originalAspectRatio;
-        }
-        
-        // 一時キャンバスを作成（アスペクト比を保持）
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvasWidth;
-        tempCanvas.height = canvasHeight;
-        const tempCtx = tempCanvas.getContext('2d');
-        
-        // 元の画像をアスペクト比を保持して描画
-        tempCtx.drawImage(uploadedImage, 0, 0, canvasWidth, canvasHeight);
-        
-        // スケール係数を計算（実際の表示サイズとキャンバスの比率）
-        const scaleX = canvasWidth / displayWidth;
-        const scaleY = canvasHeight / displayHeight;
-        
-        // デバッグ情報（開発時のみ）
-        console.log('保存時の座標変換情報:', {
-            displayWidth,
-            displayHeight,
-            canvasWidth,
-            canvasHeight,
-            scaleX,
-            scaleY,
-            containerRect: { width: containerRect.width, height: containerRect.height },
-            canvasRect: { width: canvasRect.width, height: canvasRect.height }
-        });
-        
-        // テキスト要素を描画（座標をスケール調整）
-        textElements.forEach(textData => {
-            // テキスト位置を取得
-            const element = document.getElementById(textData.id);
-            let x = textData.x * scaleX;
-            let y = textData.y * scaleY;
+        // PCとモバイルで異なる処理
+        if (!isTouchDevice) {
+            // PC用の処理（元の動作を維持）
+            const imageCanvas = document.getElementById('imageCanvas');
+            const canvasRect = imageCanvas.getBoundingClientRect();
             
-            // フォントサイズもスケール調整
-            const scaledFontSize = parseInt(textData.size) * scaleX;
-            tempCtx.font = `${scaledFontSize}px ${textData.font}`;
-            tempCtx.fillStyle = textData.color;
+            // 実際に表示されている画像のサイズを計算
+            const displayWidth = canvasRect.width;
+            const displayHeight = canvasRect.height;
             
-            // テキストの位置調整（フォントのベースラインを考慮）
-            if (element && textData.hasInitialTransform) {
-                // 中央揃えされているテキストの場合、位置を調整
-                y = y + scaledFontSize * 0.8; // フォントサイズに合わせて微調整
+            // アスペクト比を保持したキャンバスサイズを計算
+            let canvasWidth, canvasHeight;
+            
+            if (containerRect.width / containerRect.height > originalAspectRatio) {
+                // コンテナが横長の場合、高さに合わせる
+                canvasHeight = containerRect.height;
+                canvasWidth = containerRect.height * originalAspectRatio;
             } else {
-                // 通常の場合はフォントサイズに合わせて微調整
-                y = y + scaledFontSize * 0.8;
+                // コンテナが縦長の場合、幅に合わせる
+                canvasWidth = containerRect.width;
+                canvasHeight = containerRect.width / originalAspectRatio;
             }
             
-            // デバッグ情報（開発時のみ）
-            console.log(`テキスト "${textData.text}" の座標:`, {
-                original: { x: textData.x, y: textData.y },
-                scaled: { x, y },
-                fontSize: textData.size,
-                scaledFontSize,
-                hasInitialTransform: textData.hasInitialTransform
+            // 一時キャンバスを作成（アスペクト比を保持）
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvasWidth;
+            tempCanvas.height = canvasHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 元の画像をアスペクト比を保持して描画
+            tempCtx.drawImage(uploadedImage, 0, 0, canvasWidth, canvasHeight);
+            
+            // スケール係数を計算（実際の表示サイズとキャンバスの比率）
+            const scaleX = canvasWidth / displayWidth;
+            const scaleY = canvasHeight / displayHeight;
+            
+            // テキスト要素を描画（座標をスケール調整）
+            textElements.forEach(textData => {
+                // テキスト位置を取得
+                const element = document.getElementById(textData.id);
+                let x = textData.x * scaleX;
+                let y = textData.y * scaleY;
+                
+                // フォントサイズもスケール調整
+                const scaledFontSize = parseInt(textData.size) * scaleX;
+                tempCtx.font = `${scaledFontSize}px ${textData.font}`;
+                tempCtx.fillStyle = textData.color;
+                
+                // テキストの位置調整（フォントのベースラインを考慮）
+                if (element && textData.hasInitialTransform) {
+                    // 中央揃えされているテキストの場合、位置を調整
+                    y = y + scaledFontSize * 0.8;
+                } else {
+                    // 通常の場合はフォントサイズに合わせて微調整
+                    y = y + scaledFontSize * 0.8;
+                }
+                
+                tempCtx.fillText(textData.text, x, y);
             });
             
-            tempCtx.fillText(textData.text, x, y);
-        });
-        
-        // 画像をダウンロード
-        const link = document.createElement('a');
-        link.download = '10thLantern.png';
-        link.href = tempCanvas.toDataURL('image/png');
-        link.click();
+            // 画像をダウンロード
+            const link = document.createElement('a');
+            link.download = '10thLantern.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+            
+        } else {
+            // モバイル用の処理（簡略化）
+            // 元画像サイズでキャンバスを作成
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = uploadedImage.width;
+            tempCanvas.height = uploadedImage.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 元の画像を描画
+            tempCtx.drawImage(uploadedImage, 0, 0, uploadedImage.width, uploadedImage.height);
+            
+            // 簡略化されたスケール係数（コンテナサイズベース）
+            const scaleX = uploadedImage.width / containerRect.width;
+            const scaleY = uploadedImage.height / containerRect.height;
+            
+            // テキスト要素を描画（簡略化された座標変換）
+            textElements.forEach(textData => {
+                const element = document.getElementById(textData.id);
+                let x = textData.x * scaleX;
+                let y = textData.y * scaleY;
+                
+                // フォントサイズもスケール調整
+                const scaledFontSize = parseInt(textData.size) * scaleX;
+                tempCtx.font = `${scaledFontSize}px ${textData.font}`;
+                tempCtx.fillStyle = textData.color;
+                
+                // 簡略化された位置調整
+                y = y + scaledFontSize * 0.8;
+                
+                tempCtx.fillText(textData.text, x, y);
+            });
+            
+            // 画像をダウンロード
+            const link = document.createElement('a');
+            link.download = '10thLantern.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
     });
 
     // テキスト設定の変更を監視して選択中の要素に反映
