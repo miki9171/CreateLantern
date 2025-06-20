@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // テキスト要素を追加
     addTextBtn.addEventListener('click', () => {
-        const textValue = textInput.value.trim() || 'ここにテキストを挿入してください';
+        const textValue = textInput.value.trim() || 'Sample';
         const textSize = `${fontSize.value}px`;
         const textFont = fontFamily.value;
         const textColorValue = fontColor.value;
