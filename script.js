@@ -309,19 +309,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const coords = getEventCoordinates(e);
         const overlayRect = textOverlay.getBoundingClientRect();
         
+        // プレビュー内でのみドラッグを許可
+        if (coords.x < overlayRect.left || coords.x > overlayRect.right ||
+            coords.y < overlayRect.top || coords.y > overlayRect.bottom) {
+            return;
+        }
+        
         // 新しい位置を計算
         const newX = coords.x - overlayRect.left - dragOffsetX;
         const newY = coords.y - overlayRect.top - dragOffsetY;
         
+        // プレビュー内に制限
+        const maxX = overlayRect.width - selectedTextElement.offsetWidth;
+        const maxY = overlayRect.height - selectedTextElement.offsetHeight;
+        
+        const clampedX = Math.max(0, Math.min(newX, maxX));
+        const clampedY = Math.max(0, Math.min(newY, maxY));
+        
         // 要素の位置を更新
-        selectedTextElement.style.left = `${newX}px`;
-        selectedTextElement.style.top = `${newY}px`;
+        selectedTextElement.style.left = `${clampedX}px`;
+        selectedTextElement.style.top = `${clampedY}px`;
         
         // データを更新
         const textData = textElements.find(item => item.id === selectedTextElement.id);
         if (textData) {
-            textData.x = newX;
-            textData.y = newY;
+            textData.x = clampedX;
+            textData.y = clampedY;
         }
     }
 
@@ -330,11 +343,18 @@ document.addEventListener('DOMContentLoaded', () => {
         isDragging = false;
     }
 
-    // イベントリスナーの設定
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchmove', handleMove, { passive: false });
-    document.addEventListener('touchend', handleEnd, { passive: false });
+    // イベントリスナーの設定（プレビュー内でのみ）
+    textOverlay.addEventListener('mousemove', handleMove);
+    textOverlay.addEventListener('mouseup', handleEnd);
+    textOverlay.addEventListener('touchmove', handleMove, { passive: false });
+    textOverlay.addEventListener('touchend', handleEnd, { passive: false });
+    
+    // プレビュー外でのタッチ操作を無効化
+    document.addEventListener('touchmove', (e) => {
+        if (isDragging) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 
     // テキストリストの更新
     function updateTextItemsList() {
