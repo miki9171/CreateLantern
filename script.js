@@ -53,18 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
             editorContainer.style.display = 'flex';
             
             // テキストオーバーレイのサイズを調整
-            if (!isTouchDevice) {
-                // PC用：実際の画像表示サイズに調整
-                setTimeout(() => {
-                    const canvasRect = imageCanvas.getBoundingClientRect();
-                    textOverlay.style.width = `${canvasRect.width}px`;
-                    textOverlay.style.height = `${canvasRect.height}px`;
-                }, 100);
-            } else {
-                // モバイル用：元画像サイズを使用（簡略化）
-                textOverlay.style.width = `${imageCanvas.width}px`;
-                textOverlay.style.height = `${imageCanvas.height}px`;
-            }
+            // コンテナサイズに合わせる（統一）
+            const containerRect = document.querySelector('.canvas-container').getBoundingClientRect();
+            textOverlay.style.width = `${containerRect.width}px`;
+            textOverlay.style.height = `${containerRect.height}px`;
             
             // 保存ボタンを有効化
             saveImageBtn.disabled = false;
@@ -112,19 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const canvasContainer = document.querySelector('.canvas-container');
         const containerRect = canvasContainer.getBoundingClientRect();
         
-        let centerX, centerY;
-        
-        if (!isTouchDevice) {
-            // PC用：実際の画像表示領域の中心座標を計算
-            const imageCanvas = document.getElementById('imageCanvas');
-            const canvasRect = imageCanvas.getBoundingClientRect();
-            centerX = canvasRect.width / 2;
-            centerY = canvasRect.height / 2;
-        } else {
-            // モバイル用：コンテナの中心座標を使用（簡略化）
-            centerX = containerRect.width / 2;
-            centerY = containerRect.height / 2;
-        }
+        // コンテナの中心座標を使用（統一）
+        const centerX = containerRect.width / 2;
+        const centerY = containerRect.height / 2;
         
         // 位置を中央に設定（transformを使用して中央揃え）
         textElement.style.left = `${centerX}px`;
@@ -552,8 +534,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const containerRect = canvasContainer.getBoundingClientRect();
             
             // プレビュー内での相対座標を計算
-            const centerX = elementRect.left + elementRect.width / 2 - containerRect.left;
-            const centerY = elementRect.top + elementRect.height / 2 - containerRect.top;
+            let centerX, centerY;
+            
+            if (textData.hasInitialTransform) {
+                // transformが適用されている場合（初期位置）
+                // 保存された座標をそのまま使用
+                centerX = textData.x;
+                centerY = textData.y;
+            } else {
+                // ドラッグで移動された場合
+                // 実際の表示位置から計算
+                centerX = elementRect.left + elementRect.width / 2 - containerRect.left;
+                centerY = elementRect.top + elementRect.height / 2 - containerRect.top;
+            }
             
             // フォントサイズを取得（実際の表示サイズ）
             const computedStyle = window.getComputedStyle(element);
