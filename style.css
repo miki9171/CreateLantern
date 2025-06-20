@@ -129,6 +129,7 @@ h1 {
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
+    transform-origin: center;
 }
 
 .text-element.editable:focus {

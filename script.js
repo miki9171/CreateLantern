@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     let touchStartTime = 0;
     let touchStartPosition = { x: 0, y: 0 };
+    let longPressTimer = null;
+    let longPressDelay = 600; // 長押しの判定時間（ミリ秒）
 
     // 初期状態ではエディタコンテナを非表示
     editorContainer.style.display = 'none';
@@ -203,6 +205,11 @@ document.addEventListener('DOMContentLoaded', () => {
             touchStartTime = Date.now();
             touchStartPosition = { x: touch.clientX, y: touch.clientY };
             
+            // 長押しタイマーを開始
+            longPressTimer = setTimeout(() => {
+                handleLongPress(e);
+            }, longPressDelay);
+            
             // タッチ開始時にドラッグを開始
             startDrag(e);
         }
@@ -211,13 +218,49 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             e.stopPropagation();
             
+            // 長押しタイマーをクリア
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            
             const touchEndTime = Date.now();
             const touchDuration = touchEndTime - touchStartTime;
+            const touchDistance = Math.sqrt(
+                Math.pow(e.changedTouches[0].clientX - touchStartPosition.x, 2) +
+                Math.pow(e.changedTouches[0].clientY - touchStartPosition.y, 2)
+            );
             
-            // 短いタップの場合は編集モードに入る
-            if (touchDuration < 300 && !isDragging) {
+            // 短いタップで移動距離が少ない場合は編集モードに入る
+            if (touchDuration < 500 && touchDistance < 10 && !isDragging) {
                 handleDoubleClick(e);
             }
+        }
+        
+        function handleLongPress(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 長押しで編集モードに入る
+            isEditing = true;
+            element.focus();
+            
+            // 長押しの視覚的フィードバック
+            element.style.transform = 'scale(1.05)';
+            element.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.8)';
+            
+            // 少し遅延を入れてからテキストを全選択
+            setTimeout(() => {
+                const range = document.createRange();
+                range.selectNodeContents(element);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // 長押しの視覚的フィードバックを解除
+                element.style.transform = '';
+                element.style.boxShadow = '';
+            }, 100);
         }
         
         function handleDoubleClick(e) {
@@ -227,17 +270,25 @@ document.addEventListener('DOMContentLoaded', () => {
             isEditing = true;
             element.focus();
             
-            // テキストを全選択
-            const range = document.createRange();
-            range.selectNodeContents(element);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
+            // 少し遅延を入れてからテキストを全選択（モバイルでの安定性のため）
+            setTimeout(() => {
+                const range = document.createRange();
+                range.selectNodeContents(element);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }, 100);
         }
         
         function startDrag(e) {
             isDragging = true;
             selectTextElement(element);
+            
+            // ドラッグ開始時に長押しタイマーをクリア
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
             
             const coords = getEventCoordinates(e);
             const overlayRect = textOverlay.getBoundingClientRect();
