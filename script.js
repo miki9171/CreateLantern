@@ -52,9 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // エディタコンテナを表示
             editorContainer.style.display = 'flex';
             
-            // テキストオーバーレイのサイズを調整
-            textOverlay.style.width = `${imageCanvas.width}px`;
-            textOverlay.style.height = `${imageCanvas.height}px`;
+            // テキストオーバーレイのサイズを実際の画像表示サイズに調整
+            setTimeout(() => {
+                const canvasRect = imageCanvas.getBoundingClientRect();
+                textOverlay.style.width = `${canvasRect.width}px`;
+                textOverlay.style.height = `${canvasRect.height}px`;
+            }, 100);
             
             // 保存ボタンを有効化
             saveImageBtn.disabled = false;
@@ -101,8 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // キャンバスコンテナの中心座標を取得
         const canvasContainer = document.querySelector('.canvas-container');
         const containerRect = canvasContainer.getBoundingClientRect();
-        const centerX = containerRect.width / 2;
-        const centerY = containerRect.height / 2;
+        const imageCanvas = document.getElementById('imageCanvas');
+        const canvasRect = imageCanvas.getBoundingClientRect();
+        
+        // 実際の画像表示領域の中心座標を計算
+        const centerX = canvasRect.width / 2;
+        const centerY = canvasRect.height / 2;
         
         // 位置を中央に設定（transformを使用して中央揃え）
         textElement.style.left = `${centerX}px`;
@@ -524,6 +531,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const scaleX = canvasWidth / displayWidth;
         const scaleY = canvasHeight / displayHeight;
         
+        // デバッグ情報（開発時のみ）
+        console.log('保存時の座標変換情報:', {
+            displayWidth,
+            displayHeight,
+            canvasWidth,
+            canvasHeight,
+            scaleX,
+            scaleY,
+            containerRect: { width: containerRect.width, height: containerRect.height },
+            canvasRect: { width: canvasRect.width, height: canvasRect.height }
+        });
+        
         // テキスト要素を描画（座標をスケール調整）
         textElements.forEach(textData => {
             // テキスト位置を取得
@@ -544,6 +563,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 通常の場合はフォントサイズに合わせて微調整
                 y = y + scaledFontSize * 0.8;
             }
+            
+            // デバッグ情報（開発時のみ）
+            console.log(`テキスト "${textData.text}" の座標:`, {
+                original: { x: textData.x, y: textData.y },
+                scaled: { x, y },
+                fontSize: textData.size,
+                scaledFontSize,
+                hasInitialTransform: textData.hasInitialTransform
+            });
             
             tempCtx.fillText(textData.text, x, y);
         });
