@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let dragOffsetX = 0;
     let dragOffsetY = 0;
     let nextTextId = 1;
+    let isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    let touchStartTime = 0;
+    let touchStartPosition = { x: 0, y: 0 };
 
     // 初期状態ではエディタコンテナを非表示
     editorContainer.style.display = 'none';
@@ -59,6 +62,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ページ読み込み時にlantern2.pngを読み込む
     loadLanternImage();
+
+    // タッチイベントの座標を取得する関数
+    function getEventCoordinates(event) {
+        if (event.touches && event.touches.length > 0) {
+            return {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            };
+        }
+        return {
+            x: event.clientX,
+            y: event.clientY
+        };
+    }
 
     // テキスト要素を追加
     addTextBtn.addEventListener('click', () => {
@@ -156,60 +173,54 @@ document.addEventListener('DOMContentLoaded', () => {
     // ドラッグイベントの設定
     function setupDragEvents(element) {
         let isEditing = false;
+        let touchStartTime = 0;
+        let touchStartPosition = { x: 0, y: 0 };
         
-        element.addEventListener('mousedown', (e) => {
+        // マウスイベント
+        element.addEventListener('mousedown', handleStart);
+        element.addEventListener('dblclick', handleDoubleClick);
+        
+        // タッチイベント
+        element.addEventListener('touchstart', handleTouchStart, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
+        function handleStart(e) {
             e.preventDefault();
             e.stopPropagation();
             
-            // 編集モードの場合はドラッグを無効化
             if (isEditing) return;
             
-            isDragging = true;
-            selectTextElement(element);
-            
-            const rect = element.getBoundingClientRect();
-            const overlayRect = textOverlay.getBoundingClientRect();
-            
-            // テキストデータを取得
-            const textData = textElements.find(item => item.id === element.id);
-            
-            // マウス位置と要素位置の差分を計算（より正確に）
-            const elementLeft = parseFloat(element.style.left) || 0;
-            const elementTop = parseFloat(element.style.top) || 0;
-            
-            // transformが適用されている場合の実際の位置を考慮
-            if (textData && textData.hasInitialTransform) {
-                dragOffsetX = e.clientX - (overlayRect.left + elementLeft);
-                dragOffsetY = e.clientY - (overlayRect.top + elementTop);
-            } else {
-                dragOffsetX = e.clientX - (overlayRect.left + elementLeft);
-                dragOffsetY = e.clientY - (overlayRect.top + elementTop);
-            }
-            
-            // 初回ドラッグ時にtransformを解除する
-            if (textData && textData.hasInitialTransform) {
-                // 現在の座標を取得して位置を調整（transformを解除するため）
-                const currentX = parseFloat(element.style.left);
-                const currentY = parseFloat(element.style.top);
-                
-                // 要素の実際の寸法を考慮した位置調整
-                element.style.transform = 'none';
-                element.style.left = `${currentX - rect.width / 2}px`;
-                element.style.top = `${currentY - rect.height / 2}px`;
-                
-                // テキストデータも更新
-                textData.x = currentX - rect.width / 2;
-                textData.y = currentY - rect.height / 2;
-                textData.hasInitialTransform = false;
-                
-                // ドラッグオフセットも再計算
-                dragOffsetX = e.clientX - (overlayRect.left + textData.x);
-                dragOffsetY = e.clientY - (overlayRect.top + textData.y);
-            }
-        });
+            startDrag(e);
+        }
         
-        // ダブルクリックで編集モードに入る
-        element.addEventListener('dblclick', (e) => {
+        function handleTouchStart(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (isEditing) return;
+            
+            const touch = e.touches[0];
+            touchStartTime = Date.now();
+            touchStartPosition = { x: touch.clientX, y: touch.clientY };
+            
+            // タッチ開始時にドラッグを開始
+            startDrag(e);
+        }
+        
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const touchEndTime = Date.now();
+            const touchDuration = touchEndTime - touchStartTime;
+            
+            // 短いタップの場合は編集モードに入る
+            if (touchDuration < 300 && !isDragging) {
+                handleDoubleClick(e);
+            }
+        }
+        
+        function handleDoubleClick(e) {
             e.preventDefault();
             e.stopPropagation();
             
@@ -222,7 +233,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
-        });
+        }
+        
+        function startDrag(e) {
+            isDragging = true;
+            selectTextElement(element);
+            
+            const coords = getEventCoordinates(e);
+            const overlayRect = textOverlay.getBoundingClientRect();
+            
+            // テキストデータを取得
+            const textData = textElements.find(item => item.id === element.id);
+            
+            // マウス位置と要素位置の差分を計算（より正確に）
+            const elementLeft = parseFloat(element.style.left) || 0;
+            const elementTop = parseFloat(element.style.top) || 0;
+            
+            // transformが適用されている場合の実際の位置を考慮
+            if (textData && textData.hasInitialTransform) {
+                dragOffsetX = coords.x - (overlayRect.left + elementLeft);
+                dragOffsetY = coords.y - (overlayRect.top + elementTop);
+            } else {
+                dragOffsetX = coords.x - (overlayRect.left + elementLeft);
+                dragOffsetY = coords.y - (overlayRect.top + elementTop);
+            }
+            
+            // 初回ドラッグ時にtransformを解除する
+            if (textData && textData.hasInitialTransform) {
+                // 現在の座標を取得して位置を調整（transformを解除するため）
+                const currentX = parseFloat(element.style.left);
+                const currentY = parseFloat(element.style.top);
+                
+                // 要素の実際の寸法を考慮した位置調整
+                element.style.transform = 'none';
+                element.style.left = `${currentX - element.offsetWidth / 2}px`;
+                element.style.top = `${currentY - element.offsetHeight / 2}px`;
+                
+                // テキストデータも更新
+                textData.x = currentX - element.offsetWidth / 2;
+                textData.y = currentY - element.offsetHeight / 2;
+                textData.hasInitialTransform = false;
+                
+                // ドラッグオフセットも再計算
+                dragOffsetX = coords.x - (overlayRect.left + textData.x);
+                dragOffsetY = coords.y - (overlayRect.top + textData.y);
+            }
+        }
         
         // フォーカスアウト時に編集モードを終了
         element.addEventListener('blur', () => {
@@ -244,17 +300,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // マウスの移動を追跡
-    document.addEventListener('mousemove', (e) => {
+    // マウスとタッチの移動を追跡
+    function handleMove(e) {
         if (!isDragging || !selectedTextElement) return;
         
         e.preventDefault();
         
+        const coords = getEventCoordinates(e);
         const overlayRect = textOverlay.getBoundingClientRect();
         
         // 新しい位置を計算
-        const newX = e.clientX - overlayRect.left - dragOffsetX;
-        const newY = e.clientY - overlayRect.top - dragOffsetY;
+        const newX = coords.x - overlayRect.left - dragOffsetX;
+        const newY = coords.y - overlayRect.top - dragOffsetY;
         
         // 要素の位置を更新
         selectedTextElement.style.left = `${newX}px`;
@@ -266,12 +323,18 @@ document.addEventListener('DOMContentLoaded', () => {
             textData.x = newX;
             textData.y = newY;
         }
-    });
+    }
 
     // ドラッグ終了処理
-    document.addEventListener('mouseup', () => {
+    function handleEnd() {
         isDragging = false;
-    });
+    }
+
+    // イベントリスナーの設定
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd, { passive: false });
 
     // テキストリストの更新
     function updateTextItemsList() {
@@ -320,36 +383,60 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
+        // 元画像のアスペクト比を計算
+        const originalAspectRatio = uploadedImage.width / uploadedImage.height;
+        
         // プレビューのサイズを取得
         const canvasContainer = document.querySelector('.canvas-container');
         const containerRect = canvasContainer.getBoundingClientRect();
         
-        // 一時キャンバスを作成（プレビューサイズと同じ）
+        // アスペクト比を保持したキャンバスサイズを計算
+        let canvasWidth, canvasHeight;
+        
+        if (containerRect.width / containerRect.height > originalAspectRatio) {
+            // コンテナが横長の場合、高さに合わせる
+            canvasHeight = containerRect.height;
+            canvasWidth = containerRect.height * originalAspectRatio;
+        } else {
+            // コンテナが縦長の場合、幅に合わせる
+            canvasWidth = containerRect.width;
+            canvasHeight = containerRect.width / originalAspectRatio;
+        }
+        
+        // 一時キャンバスを作成（アスペクト比を保持）
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = containerRect.width;
-        tempCanvas.height = containerRect.height;
+        tempCanvas.width = canvasWidth;
+        tempCanvas.height = canvasHeight;
         const tempCtx = tempCanvas.getContext('2d');
         
-        // 元の画像をプレビューサイズに合わせて描画
-        tempCtx.drawImage(uploadedImage, 0, 0, tempCanvas.width, tempCanvas.height);
+        // 元の画像をアスペクト比を保持して描画
+        tempCtx.drawImage(uploadedImage, 0, 0, canvasWidth, canvasHeight);
         
-        // テキスト要素を描画（座標変換なし）
+        // スケール係数を計算（プレビューと実際のキャンバスの比率）
+        const scaleX = canvasWidth / containerRect.width;
+        const scaleY = canvasHeight / containerRect.height;
+        
+        // テキスト要素を描画（座標をスケール調整）
         textElements.forEach(textData => {
             tempCtx.font = `${textData.size} ${textData.font}`;
             tempCtx.fillStyle = textData.color;
             
             // テキスト位置を取得
             const element = document.getElementById(textData.id);
-            let x = textData.x;
-            let y = textData.y;
+            let x = textData.x * scaleX;
+            let y = textData.y * scaleY;
+            
+            // フォントサイズもスケール調整
+            const scaledFontSize = parseInt(textData.size) * scaleX;
+            tempCtx.font = `${scaledFontSize}px ${textData.font}`;
             
             // 中央揃えの場合は位置を調整
             if (element && textData.hasInitialTransform) {
                 // 中央揃えされているテキストの場合、位置を調整
-                y = y + parseInt(textData.size) * 0.3; // フォントサイズに合わせて微調整
+                y = y + scaledFontSize * 0.3; // フォントサイズに合わせて微調整
             } else {
                 // 通常の場合はフォントサイズに合わせて微調整
-                y = y + parseInt(textData.size) * 0.7;
+                y = y + scaledFontSize * 0.7;
             }
             
             tempCtx.fillText(textData.text, x, y);
