@@ -477,18 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let x = textData.x * scaleX;
             let y = textData.y * scaleY;
             
-            // フォントサイズもスケール調整
+            // フォントサイズを先にスケール調整
             const scaledFontSize = parseInt(textData.size) * scaleX;
             tempCtx.font = `${scaledFontSize}px ${textData.font}`;
             
-            // 中央揃えの場合は位置を調整
-            if (element && textData.hasInitialTransform) {
-                // 中央揃えされているテキストの場合、位置を調整
-                y = y + scaledFontSize * 0.3; // フォントサイズに合わせて微調整
-            } else {
-                // 通常の場合はフォントサイズに合わせて微調整
-                y = y + scaledFontSize * 0.7;
-            }
+            // 統一された位置調整（フォントのベースラインを考慮）
+            y = y + scaledFontSize * 0.8;
             
             tempCtx.fillText(textData.text, x, y);
         });
