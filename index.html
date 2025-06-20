@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像メッセージエディタ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="editor-container" id="editorContainer">
+            <div class="canvas-container">
+                <canvas id="imageCanvas"></canvas>
+                <div id="textOverlay" class="text-overlay"></div>
+            </div>
+
+            <div class="control-panel">
+                <div class="text-controls">
+                    <h3>メッセージ設定</h3>
+                    <div class="control-group">
+                        <label for="textInput">メッセージ：</label>
+                        <input type="text" id="textInput" placeholder="ここにメッセージを入力">
+                    </div>
+                    <div class="control-group">
+                        <label for="fontSize">フォントサイズ：</label>
+                        <input type="range" id="fontSize" min="10" max="100" value="24">
+                        <span id="fontSizeValue">24px</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="fontColor">フォントカラー：</label>
+                        <input type="color" id="fontColor" value="#000000">
+                    </div>
+                    <div class="control-group">
+                        <label for="fontFamily">フォント：</label>
+                        <select id="fontFamily">
+                            <option value="serif">明朝体 (serif)</option>
+                            <option value="sans-serif">ゴシック体 (sans-serif)</option>
+                            <option value="Meiryo, sans-serif">メイリオ</option>
+                            <option value="Yu Gothic, sans-serif">游ゴシック</option>
+                            <option value="Yu Mincho, serif">游明朝</option>
+                            <option value="Hiragino Kaku Gothic ProN, sans-serif">ヒラギノ角ゴ ProN</option>
+                            <option value="Hiragino Mincho ProN, serif">ヒラギノ明朝 ProN</option>
+                            <option value="Noto Sans JP, sans-serif">Noto Sans JP</option>
+                            <option value="Noto Serif JP, serif">Noto Serif JP</option>
+                            <option value="Arial, sans-serif">Arial (英語)</option>
+                            <option value="Times New Roman, serif">Times New Roman (英語)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="addTextBtn">メッセージボックスを追加！</button>
+                    <button id="saveImageBtn">画像をダウンロードする！</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="textElements" class="text-elements-list">
+            <h3>追加されたメッセージ</h3>
+            <ul id="textItemsList"></ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
