@@ -491,6 +491,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // プレビューのサイズを取得
         const canvasContainer = document.querySelector('.canvas-container');
         const containerRect = canvasContainer.getBoundingClientRect();
+        const imageCanvas = document.getElementById('imageCanvas');
+        const canvasRect = imageCanvas.getBoundingClientRect();
+        
+        // 実際に表示されている画像のサイズを計算
+        const displayWidth = canvasRect.width;
+        const displayHeight = canvasRect.height;
         
         // アスペクト比を保持したキャンバスサイズを計算
         let canvasWidth, canvasHeight;
@@ -514,26 +520,30 @@ document.addEventListener('DOMContentLoaded', () => {
         // 元の画像をアスペクト比を保持して描画
         tempCtx.drawImage(uploadedImage, 0, 0, canvasWidth, canvasHeight);
         
-        // スケール係数を計算（プレビューと実際のキャンバスの比率）
-        const scaleX = canvasWidth / containerRect.width;
-        const scaleY = canvasHeight / containerRect.height;
+        // スケール係数を計算（実際の表示サイズとキャンバスの比率）
+        const scaleX = canvasWidth / displayWidth;
+        const scaleY = canvasHeight / displayHeight;
         
         // テキスト要素を描画（座標をスケール調整）
         textElements.forEach(textData => {
-            tempCtx.font = `${textData.size} ${textData.font}`;
-            tempCtx.fillStyle = textData.color;
-            
             // テキスト位置を取得
             const element = document.getElementById(textData.id);
             let x = textData.x * scaleX;
             let y = textData.y * scaleY;
             
-            // フォントサイズを先にスケール調整
+            // フォントサイズもスケール調整
             const scaledFontSize = parseInt(textData.size) * scaleX;
             tempCtx.font = `${scaledFontSize}px ${textData.font}`;
+            tempCtx.fillStyle = textData.color;
             
-            // 統一された位置調整（フォントのベースラインを考慮）
-            y = y + scaledFontSize * 0.8;
+            // テキストの位置調整（フォントのベースラインを考慮）
+            if (element && textData.hasInitialTransform) {
+                // 中央揃えされているテキストの場合、位置を調整
+                y = y + scaledFontSize * 0.8; // フォントサイズに合わせて微調整
+            } else {
+                // 通常の場合はフォントサイズに合わせて微調整
+                y = y + scaledFontSize * 0.8;
+            }
             
             tempCtx.fillText(textData.text, x, y);
         });
