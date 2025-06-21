@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 保存ボタンを有効化
             saveImageBtn.disabled = false;
         };
-        img.src = 'lantern2.png';
+        img.src = 'images/lantern.png';
     }
 
     // ページ読み込み時にlantern2.pngを読み込む
